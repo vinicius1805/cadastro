@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro com PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .edit, .delete, .generate-pdf {
+            cursor: pointer;
+            color: blue;
+            margin-right: 10px;
+        }
+        .delete {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Cadastro</h2>
+    <form id="cadastroForm">
+        <input type="hidden" id="index" value="-1">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" required>
+
+        <label for="cpf">CPF:</label>
+        <input type="text" id="cpf" name="cpf" required>
+
+        <label for="telefone">Telefone:</label>
+        <input type="tel" id="telefone" name="telefone" required>
+
+        <button type="submit">Cadastrar</button>
+    </form>
+
+    <h2>Lista de Cadastros</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Telefone</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="cadastroList"></tbody>
+    </table>
+    
+    <button class="generate-pdf" onclick="generatePDF()">Gerar PDF</button>
+
+    <script>
+        const cadastroForm = document.getElementById('cadastroForm');
+        const cadastroList = document.getElementById('cadastroList');
+        let cadastros = JSON.parse(localStorage.getItem('cadastros')) || [];
+
+        function renderList() {
+            cadastroList.innerHTML = '';
+            cadastros.forEach((cadastro, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${cadastro.nome}</td>
+                    <td>${cadastro.cpf}</td>
+                    <td>${cadastro.telefone}</td>
+                    <td>
+                        <span class="edit" onclick="editCadastro(${index})">Editar</span>
+                        <span class="delete" onclick="deleteCadastro(${index})">Excluir</span>
+                    </td>
+                `;
+                cadastroList.appendChild(row);
+            });
+        }
+
+        function saveCadastros() {
+            localStorage.setItem('cadastros', JSON.stringify(cadastros));
+            renderList();
+        }
+
+        function editCadastro(index) {
+            document.getElementById('index').value = index;
+            document.getElementById('nome').value = cadastros[index].nome;
+            document.getElementById('cpf').value = cadastros[index].cpf;
+            document.getElementById('telefone').value = cadastros[index].telefone;
+        }
+
+        function deleteCadastro(index) {
+            cadastros.splice(index, 1);
+            saveCadastros();
+        }
+
+        cadastroForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const index = document.getElementById('index').value;
+
+            const novoCadastro = {
+                nome: document.getElementById('nome').value,
+                cpf: document.getElementById('cpf').value,
+                telefone: document.getElementById('telefone').value
+            };
+
+            if (index === '-1') {
+                cadastros.push(novoCadastro);
+            } else {
+                cadastros[index] = novoCadastro;
+                document.getElementById('index').value = '-1'; // Reseta para novo cadastro
+            }
+
+            saveCadastros();
+            cadastroForm.reset();
+        });
+
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(12);
+            doc.text('Lista de Cadastros', 14, 10);
+
+            cadastros.forEach((cadastro, index) => {
+                const y = 20 + (index * 10);
+                doc.text(`Nome: ${cadastro.nome}, CPF: ${cadastro.cpf}, Telefone: ${cadastro.telefone}`, 14, y);
+            });
+
+            doc.save('cadastros.pdf');
+        }
+
+        renderList(); // Renderiza a lista ao carregar a página
+    </script>
+</body>
+</html>
